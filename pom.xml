@@ -51,13 +51,40 @@
       <maven.compiler.target>11</maven.compiler.target>
       <version.junit>4.11</version.junit>
       <version.jaxb.xjc>3.0.2</version.jaxb.xjc>
+      <version.slf4j>1.7.36</version.slf4j>
+      <version.commons.lang3>3.12.0</version.commons.lang3>
    </properties>
 
    <dependencies>
       <dependency>
-         <groupId>com.sun.xml.bind</groupId>
+         <groupId>org.glassfish.jaxb</groupId>
          <artifactId>jaxb-xjc</artifactId>
          <version>${version.jaxb.xjc}</version>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.commons</groupId>
+         <artifactId>commons-lang3</artifactId>
+         <version>${version.commons.lang3}</version>
+      </dependency>
+      <!-- Depend on slf4j API -->
+      <dependency>
+         <groupId>org.slf4j</groupId>
+         <artifactId>slf4j-api</artifactId>
+         <version>${version.slf4j}</version>
+      </dependency>
+      <!-- Use SimpleLogger as the slf4j implementation in test -->
+      <dependency>
+         <groupId>org.slf4j</groupId>
+         <artifactId>slf4j-simple</artifactId>
+         <version>${version.slf4j}</version>
+         <scope>test</scope>
+      </dependency>
+      <!-- Use log4j as the slf4j implementation during runtime (not test) -->
+      <dependency>
+         <groupId>org.slf4j</groupId>
+         <artifactId>slf4j-log4j12</artifactId>
+         <version>${version.slf4j}</version>
+         <scope>runtime</scope>
       </dependency>
       <dependency>
          <groupId>junit</groupId>

@@ -7,7 +7,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ErrorHandler;
@@ -25,53 +25,38 @@ import com.sun.tools.xjc.Plugin;
 import com.sun.tools.xjc.outline.ClassOutline;
 import com.sun.tools.xjc.outline.Outline;
 
-public class XJCEqualsPlugin extends Plugin {
+public class XJCHashCodePlugin extends Plugin {
 
-   private static Logger logger = LoggerFactory.getLogger(XJCEqualsPlugin.class);
+   private static Logger logger = LoggerFactory.getLogger(XJCHashCodePlugin.class);
 
+   
    @Override
    public String getOptionName() {
-      return "Xgs1-equals";
+      return "Xgs1-hashcode";
    }
 
    @Override
    public int parseArgument(Options opt, String[] args, int i) {
       return 1;
    }
-
-   @Override
-   public void onActivated(Options opts) {
-      logger.info("(XJCEqualsPlugin) Activated.");
-   }
    
    @Override
+   public void onActivated(Options opts) {
+      logger.info("(XJCHashcodePlugin) Activated.");
+   }
+
+   @Override
    public String getUsage() {
-      return "  -Xgs1-equals    :  jxc gs1 tools plugin";
+      return "  -Xgs1-hashcode    :  jxc gs1 tools plugin";
    }
 
    @Override
    public boolean run(Outline outline, Options opt, ErrorHandler errorHandler) throws SAXException {
       JCodeModel model = new JCodeModel();
-      logger.debug("(XJCEqualsPlugin) Found {} classes.", outline.getClasses()
+      logger.debug("(XJCHashcodePlugin) Found {} classes.", outline.getClasses()
             .size());
       for (ClassOutline o : outline.getClasses()) {
-         logger.debug("(XJCEqualsPlugin) Generate equals for class {}.", o.implClass.name());
-         JClass equalsBuilderClass = model.ref(EqualsBuilder.class);
-         JMethod method = o.implClass.method(PUBLIC, boolean.class, "equals");
-         method.annotate(Override.class);
-         JVar that = method.param(Object.class, "that");
-         JBlock body = method.body();
-         body._if(JExpr._this()
-               .eq(that))
-               ._then()
-               ._return(JExpr.lit(true));
-         body._if(that.eq(JExpr._null()))
-               ._then()
-               ._return(JExpr.lit(false));
-         body._if(JExpr.invoke("getClass")
-               .ne(JExpr.invoke(that, "getClass")))
-               ._then()
-               ._return(JExpr.lit(false));
+         JClass hashCodeBuilderClass = model.ref(HashCodeBuilder.class);
          // remove static fields
          Set<Entry<String, JFieldVar>> fields = o.implClass.fields()
                .entrySet()
@@ -80,20 +65,23 @@ public class XJCEqualsPlugin extends Plugin {
                      .mods()
                      .getValue() & STATIC) == 0)
                .collect(Collectors.toSet());
+
          if (fields.size() == 0) {
-            body._return(JExpr.lit(true));
+            logger.debug("(XJCHashcodePlugin) Skip hashCode for class {}, reason: no fields.", o.implClass.name());
             continue;
          }
-         JVar equalsBuilder = body.decl(0, equalsBuilderClass, "equalsBuilder", JExpr._new(equalsBuilderClass));
-         JVar other = body.decl(0, o.implClass, "other", JExpr.cast(o.implClass, that));
+         logger.debug("(XJCHashcodePlugin) Generate hashCode for class {}.", o.implClass.name());
+         JMethod method = o.implClass.method(PUBLIC, int.class, "hashCode");
+         method.annotate(Override.class);
+         JBlock body = method.body();
+         JVar equalsBuilder = body.decl(0, hashCodeBuilderClass, "hashCodeBuilderBuilder", JExpr._new(hashCodeBuilderClass).arg("17").arg("17"));
          for (Entry<String, JFieldVar> e : fields) {
             JFieldVar v = e.getValue();
-            logger.debug("(XJCEqualsPlugin) Append {} for equals.", e.getKey());
+            logger.debug("(XJCHashcodePlugin) Append {} for hashCode.", e.getKey());
             body.add(equalsBuilder.invoke("append")
-                  .arg(v)
-                  .arg(other.ref(v)));
+                  .arg(v));
          }
-         body._return(equalsBuilder.invoke("isEquals"));
+         body._return(equalsBuilder.invoke("toHashCode"));
       }
       return true;
    }
