@@ -33,7 +33,7 @@ public class XJCToStringPlugin extends Plugin {
    public String getOptionName() {
       return "Xgs1-tostring";
    }
-   
+
    @Override
    public void onActivated(Options opts) {
       logger.info("(XJCToStringPlugin) Activated.");
