@@ -15,7 +15,7 @@
         </repository>
         <repository>
           <id>github</id>
-          <url>https://maven.pkg.github.com/gs1-romania/jaxb2-tools</url>
+          <url>https://maven.pkg.github.com/gs1-romania/jaxb3-tools</url>
           <snapshots>
             <enabled>true</enabled>
           </snapshots>
