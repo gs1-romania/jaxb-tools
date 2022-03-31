@@ -1,2 +1,3 @@
-ro.gs1.jaxbtools.XJCEqualsPlugin
-ro.gs1.jaxbtools.XJCHashCodePlugin
+ro.gs1.jaxbtools.hashcode.XJCHashCodePlugin
+ro.gs1.jaxbtools.tostring.XJCToStringPlugin
+ro.gs1.jaxbtools.equals.XJCEqualsPlugin

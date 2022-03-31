@@ -1,4 +1,4 @@
-package ro.gs1.jaxbtools;
+package ro.gs1.jaxbtools.equals;
 
 import static com.sun.codemodel.JMod.PUBLIC;
 import static com.sun.codemodel.JMod.STATIC;
@@ -35,15 +35,10 @@ public class XJCEqualsPlugin extends Plugin {
    }
 
    @Override
-   public int parseArgument(Options opt, String[] args, int i) {
-      return 1;
-   }
-
-   @Override
    public void onActivated(Options opts) {
       logger.info("(XJCEqualsPlugin) Activated.");
    }
-   
+
    @Override
    public String getUsage() {
       return "  -Xgs1-equals    :  jxc gs1 tools plugin";
@@ -52,11 +47,11 @@ public class XJCEqualsPlugin extends Plugin {
    @Override
    public boolean run(Outline outline, Options opt, ErrorHandler errorHandler) throws SAXException {
       JCodeModel model = new JCodeModel();
+      JClass equalsBuilderClass = model.ref(EqualsBuilder.class);
       logger.debug("(XJCEqualsPlugin) Found {} classes.", outline.getClasses()
             .size());
       for (ClassOutline o : outline.getClasses()) {
          logger.debug("(XJCEqualsPlugin) Generate equals for class {}.", o.implClass.name());
-         JClass equalsBuilderClass = model.ref(EqualsBuilder.class);
          JMethod method = o.implClass.method(PUBLIC, boolean.class, "equals");
          method.annotate(Override.class);
          JVar that = method.param(Object.class, "that");
