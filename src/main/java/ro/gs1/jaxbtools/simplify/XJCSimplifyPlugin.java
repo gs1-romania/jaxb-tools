@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -37,6 +38,7 @@ import com.sun.tools.xjc.outline.ClassOutline;
 import com.sun.tools.xjc.outline.Outline;
 
 import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlElementRef;
 import jakarta.xml.bind.annotation.XmlType;
 import ro.gs1.jaxbtools.AbstractPlugin;
 
@@ -157,7 +159,8 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
       CPluginCustomization customization = customizations.find(DELETE_JAXB_ELEMENT_LIST_ELEMENT_NAME.getNamespaceURI(),
             DELETE_JAXB_ELEMENT_LIST_ELEMENT_NAME.getLocalPart());
       if (customization != null) {
-         logger.debug("(XJCSimplifyPlugin) - found customization for field: {}", cPropertyInfo.getName(false));
+         logger.debug("(XJCSimplifyPlugin) - found customization for field: {} class: {}", cPropertyInfo.getName(false),
+               classOutline.implClass.name());
          if (cPropertyInfo.ref()
                .isEmpty()) {
             logger.debug("(XJCSimplifyPlugin) - field without reference to any type, skip");
@@ -165,91 +168,117 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
          }
          JFieldVar customizedJField = classOutline.implClass.fields()
                .get(cPropertyInfo.getName(false));
-         classOutline.implClass.removeField(customizedJField);
-         if (cPropertyInfo.ref()
-               .size() == 1) {
-            logger.debug("(XJCSimplifyPlugin) - one reference found, removing JAXBElement");
-            // CTypeInfo firstClass = cPropertyInfo.ref()
-            // .stream()
-            // .findFirst()
-            // .orElse(null);
-            // JType type = firstClass.toType(outline, Aspect.IMPLEMENTATION);
-            // JClass boxify = type.boxify();
-            logger.debug("(XJCSimplifyPlugin) - unimplemented");
-            // JType unboxify = type.unboxify();
-            // boxify.getTypeParameters();
-            // cPropertyInfo.ref().clear();
+         
+         logger.debug("(XJCSimplifyPlugin) - refs size: {}", cPropertyInfo.ref()
+               .size());
+         JClass lowestCommonAncestorClass = findLowestCommonAncestorClass(outline, cPropertyInfo.ref());
+         if (lowestCommonAncestorClass == null) {
+            logger.debug("(XJCSimplifyPlugin) - cannot compute LCA, skip field");
+            return;
+         }
+         if (lowestCommonAncestorClass.fullName()
+               .equals("java.lang.Object")) {
+            logger.debug("(XJCSimplifyPlugin) - field: {}, LCA java.lang.Object, each ref own field",
+                  customizedJField.name());
+            classOutline.implClass.removeField(customizedJField);
+            removeGetterIfExists(classOutline, customizedJField);
+            breakRefsInFields(outline, model, classOutline, cPropertyInfo, customizedJField);
          } else {
-            logger.debug(
-                  "(XJCSimplifyPlugin) - more than one reference found for field: {}, replace with java.lang.Object",
-                  customizedJField);
-            Collection<? extends CTypeInfo> propertyRefs = cPropertyInfo.ref();
-            JClass xmlElementRef = model.ref(XmlElement.class);
-            Collection<JAnnotationUse> annotations = customizedJField.annotations();
-            for (CTypeInfo cTypeInfo : propertyRefs) {
-               JType jType = cTypeInfo.toType(outline, Aspect.IMPLEMENTATION);
-               List<JClass> typeParameters = jType.boxify()
-                     .getTypeParameters();
-               typeParameters.stream()
-                     .filter(aa -> aa instanceof JDefinedClass)
-                     .forEach(aa -> {
-                        JFieldVar newField = classOutline.ref.field(JMod.PROTECTED, aa,
-                              StringUtils.uncapitalize(aa.name()));
-                        logger.debug("(XJCSimplifyPlugin) - Added field {}", newField);
-                        JClass xmlTypeRef = model.ref(XmlType.class);
-                        JAnnotationUse xmlTypeAnnotation = classOutline.implClass.annotations()
-                              .stream()
-                              .filter(bb -> bb.getAnnotationClass()
-                                    .compareTo(xmlTypeRef) == 0)
-                              .findFirst()
-                              .orElse(null);
-                        Entry<String, JAnnotationValue> propOrder = xmlTypeAnnotation.getAnnotationMembers()
-                              .entrySet()
-                              .stream()
-                              .filter(bb -> StringUtils.equalsIgnoreCase(bb.getKey(), "propOrder"))
-                              .findFirst()
-                              .orElse(null);
-                        JAnnotationValue propOrderValue = propOrder.getValue();
-                        JAnnotationArrayMember propOrderCast = (JAnnotationArrayMember) propOrderValue;
-                        Field values;
-                        try {
-                           values = JAnnotationArrayMember.class.getDeclaredField("values");
-                           values.setAccessible(true);
-                           List<?> valuesList = (List<?>) values.get(propOrderCast);
-                           valuesList.removeIf(bb -> StringUtils
-                                 .equalsIgnoreCase(((JAnnotationStringValue) bb).toString(), customizedJField.name()));
-                        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException
-                              | IllegalAccessException e) {
-                           logger.error(e.getMessage());
-                        }
-                        propOrderCast.param(StringUtils.uncapitalize(aa.name()));
-                        JAnnotationUse xmlElementRefAnnotation = annotations.stream()
-                              .filter(bb -> {
-                                 JClass annotationClass = bb.getAnnotationClass();
-                                 if (StringUtils.equals(annotationClass.name(), "XmlElementRef")) {
-                                    return true;
-                                 }
-                                 return false;
-                              })
-                              .findFirst()
-                              .orElse(null);
-                        Entry<String, JAnnotationValue> namespace = xmlElementRefAnnotation.getAnnotationMembers()
-                              .entrySet()
-                              .stream()
-                              .filter(bb -> StringUtils.equalsIgnoreCase(bb.getKey(), "namespace"))
-                              .findFirst()
-                              .orElse(null);
-                        JAnnotationStringValue namespaceCast = (JAnnotationStringValue) namespace.getValue();
-                        JAnnotationUse annotate = newField.annotate(xmlElementRef);
-                        annotate.param("name", aa.name());
-                        annotate.param("namespace", namespaceCast.toString());
-                        generateGetter(classOutline, newField);
-                        generateSetter(classOutline, newField);
-                     });
+            logger.debug("(XJCSimplifyPlugin) - field: {}, LCA {}, replace JAXBElement", customizedJField.name(),
+                  lowestCommonAncestorClass.name());
+            JClass listRef = model.ref(ArrayList.class);
+            JClass listOfObjectRef = listRef.narrow(lowestCommonAncestorClass);
+            customizedJField.type(listOfObjectRef);
+            generateGetter(classOutline, customizedJField);
+            JClass xmlElementRef = model.ref(XmlElementRef.class);
+            JAnnotationUse xmlElementRefAnnotation = customizedJField.annotations()
+                  .stream()
+                  .filter(bb -> bb.getAnnotationClass()
+                        .compareTo(xmlElementRef) == 0)
+                  .findFirst()
+                  .orElse(null);
+            if (xmlElementRefAnnotation != null) {
+               try {
+                  Field values = JAnnotationUse.class.getDeclaredField("memberValues");
+                  values.setAccessible(true);
+                  Map<?, ?> memberValues = (Map<?, ?>) values.get(xmlElementRefAnnotation);
+                  memberValues.remove("type");
+                  xmlElementRefAnnotation.param("type", lowestCommonAncestorClass);
+               } catch (NoSuchFieldException | SecurityException | IllegalArgumentException
+                     | IllegalAccessException e) {
+                  logger.error(e.getMessage());
+               }
             }
          }
          customization.markAsAcknowledged();
       }
    }
 
+   private void breakRefsInFields(Outline outline, JCodeModel model, ClassOutline classOutline,
+         CPropertyInfo cPropertyInfo, JFieldVar customizedJField) {
+      Collection<? extends CTypeInfo> propertyRefs = cPropertyInfo.ref();
+      JClass xmlElementRef = model.ref(XmlElement.class);
+      Collection<JAnnotationUse> annotations = customizedJField.annotations();
+      for (CTypeInfo cTypeInfo : propertyRefs) {
+         JType jType = cTypeInfo.toType(outline, Aspect.IMPLEMENTATION);
+         logger.debug("(XJCSimplifyPlugin) - field: {}, type found: {}", customizedJField.name(), jType.name());
+         List<JClass> typeParameters = jType.boxify()
+               .getTypeParameters();
+         typeParameters.stream()
+               .filter(aa -> aa instanceof JDefinedClass)
+               .forEach(aa -> {
+                  JFieldVar newField = classOutline.ref.field(JMod.PROTECTED, aa, StringUtils.uncapitalize(aa.name()));
+                  logger.debug("(XJCSimplifyPlugin) - Added field {}", newField);
+                  JClass xmlTypeRef = model.ref(XmlType.class);
+                  JAnnotationUse xmlTypeAnnotation = classOutline.implClass.annotations()
+                        .stream()
+                        .filter(bb -> bb.getAnnotationClass()
+                              .compareTo(xmlTypeRef) == 0)
+                        .findFirst()
+                        .orElse(null);
+                  Entry<String, JAnnotationValue> propOrder = xmlTypeAnnotation.getAnnotationMembers()
+                        .entrySet()
+                        .stream()
+                        .filter(bb -> StringUtils.equalsIgnoreCase(bb.getKey(), "propOrder"))
+                        .findFirst()
+                        .orElse(null);
+                  JAnnotationValue propOrderValue = propOrder.getValue();
+                  JAnnotationArrayMember propOrderCast = (JAnnotationArrayMember) propOrderValue;
+                  Field values;
+                  try {
+                     values = JAnnotationArrayMember.class.getDeclaredField("values");
+                     values.setAccessible(true);
+                     List<?> valuesList = (List<?>) values.get(propOrderCast);
+                     valuesList.removeIf(bb -> StringUtils.equalsIgnoreCase(((JAnnotationStringValue) bb).toString(),
+                           customizedJField.name()));
+                  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException
+                        | IllegalAccessException e) {
+                     logger.error(e.getMessage());
+                  }
+                  propOrderCast.param(StringUtils.uncapitalize(aa.name()));
+                  JAnnotationUse xmlElementRefAnnotation = annotations.stream()
+                        .filter(bb -> {
+                           JClass annotationClass = bb.getAnnotationClass();
+                           if (StringUtils.equals(annotationClass.name(), "XmlElementRef")) {
+                              return true;
+                           }
+                           return false;
+                        })
+                        .findFirst()
+                        .orElse(null);
+                  Entry<String, JAnnotationValue> namespace = xmlElementRefAnnotation.getAnnotationMembers()
+                        .entrySet()
+                        .stream()
+                        .filter(bb -> StringUtils.equalsIgnoreCase(bb.getKey(), "namespace"))
+                        .findFirst()
+                        .orElse(null);
+                  JAnnotationStringValue namespaceCast = (JAnnotationStringValue) namespace.getValue();
+                  JAnnotationUse annotate = newField.annotate(xmlElementRef);
+                  annotate.param("name", aa.name());
+                  annotate.param("namespace", namespaceCast.toString());
+                  generateGetter(classOutline, newField);
+                  generateSetter(classOutline, newField);
+               });
+      }
+   }
 }

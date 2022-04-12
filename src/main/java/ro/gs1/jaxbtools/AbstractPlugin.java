@@ -2,10 +2,13 @@ package ro.gs1.jaxbtools;
 
 import static com.sun.codemodel.JMod.PUBLIC;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -21,9 +24,13 @@ import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JExpr;
 import com.sun.codemodel.JFieldVar;
 import com.sun.codemodel.JMethod;
+import com.sun.codemodel.JType;
 import com.sun.codemodel.JVar;
 import com.sun.tools.xjc.Plugin;
+import com.sun.tools.xjc.model.CTypeInfo;
+import com.sun.tools.xjc.outline.Aspect;
 import com.sun.tools.xjc.outline.ClassOutline;
+import com.sun.tools.xjc.outline.Outline;
 
 import jakarta.xml.bind.annotation.XmlElement;
 
@@ -83,6 +90,88 @@ public abstract class AbstractPlugin extends Plugin {
       setterBody.assign(JExpr._this()
             .ref(customizedJField), that);
       logger.debug("(AbstractPlugin) generated setter for field", customizedJField.name());
+   }
+
+   protected JClass findLowestCommonAncestorClass(Outline outline, Collection<? extends CTypeInfo> cPropertyInfo) {
+      List<JClass> classes = new ArrayList<>();
+      for (CTypeInfo cTypeInfo : cPropertyInfo) {
+         JType jType = cTypeInfo.toType(outline, Aspect.IMPLEMENTATION);
+         classes.addAll(jType.boxify()
+               .getTypeParameters());
+      }
+      return findLowestCommonAncestorClass(outline, classes);
+   }
+
+   protected JClass findLowestCommonAncestorClass(Outline outline, List<JClass> classes) {
+      // because JClass does not have equlas we cannot use it for searching
+      // <full name of the class, list of full name extended classes>
+      Map<String, List<String>> classesMatrix = new HashMap<>();
+      for (JClass jClass : classes) {
+         logger.debug("(AbstractPlugin) - find class: {}", jClass.name());
+         if (!classesMatrix.containsKey(jClass.fullName())) {
+            classesMatrix.put(jClass.fullName(), new ArrayList<>());
+         }
+         // put the classes in order, it is important for searching the first
+         // class, otherwise Object.class is always selected
+         List<String> parentsList = classesMatrix.get(jClass.fullName());
+         parentsList.add(jClass.fullName());
+         JClass jExtends = jClass._extends();
+         while (jExtends != null) {
+            logger.debug("(AbstractPlugin) - class: {} extends: {}", jClass.name(), jExtends.name());
+            parentsList.add(jExtends.fullName());
+            jExtends = jExtends._extends();
+         }
+      }
+      logger.debug("(AbstractPlugin) - classesMatrix: {}", classesMatrix);
+      Optional<Entry<String, List<String>>> classWithMostParents = classesMatrix.entrySet()
+            .stream()
+            .max((o1, o2) -> {
+               return o1.getValue()
+                     .size()
+                     - o2.getValue()
+                           .size();
+            });
+      if (classWithMostParents.isEmpty()) {
+         return null;
+      }
+      Entry<String, List<String>> maxParentsClass = classWithMostParents.get();
+      int pointerOfList = 0;
+      logger.debug("(AbstractPlugin) - max parents class: {}", maxParentsClass.getKey());
+      while (pointerOfList < maxParentsClass.getValue()
+            .size()) {
+         int classFoundIn = 0;
+         for (Entry<String, List<String>> classMatrix : classesMatrix.entrySet()) {
+            List<String> classExtendList = classMatrix.getValue();
+            String foundParentClass = null;
+            for (String classParent : classExtendList) {
+               if (classParent.equals(maxParentsClass.getValue()
+                     .get(pointerOfList))) {
+                  foundParentClass = classParent;
+                  break;
+               }
+            }
+            if (foundParentClass != null) {
+               logger.debug("(AbstractPlugin) - parent class found: {} in list of: {}", foundParentClass,
+                     classMatrix.getKey());
+               classFoundIn++;
+            }
+         }
+         logger.debug("(AbstractPlugin) - class {} found in {} list parent classes", maxParentsClass.getValue()
+               .get(pointerOfList), classFoundIn);
+         if (classFoundIn == classesMatrix.size()) {
+            logger.debug("(AbstractPlugin) - LCA found at pointer: {}, {}", pointerOfList, maxParentsClass.getValue()
+                  .get(pointerOfList));
+            break;
+         }
+         pointerOfList++;
+      }
+      String lca = maxParentsClass.getValue()
+            .get(pointerOfList);
+      return classes.stream()
+            .filter(aa -> aa.fullName()
+                  .equals(lca))
+            .findFirst()
+            .orElse(null);
    }
 
    protected void replaceXmlElementRefAnnotation(JCodeModel model, JFieldVar customizedJField) {
