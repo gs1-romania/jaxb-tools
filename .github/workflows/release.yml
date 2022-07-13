@@ -39,10 +39,10 @@ jobs:
       - name: Maven release ${{steps.metadata.outputs.current-version}}
         run: |
           git checkout -b release
-          mvn -B release:prepare -Prelease -DreleaseVersion=${{ github.event.inputs.releaseVersion }} -DdevelopmentVersion=${{ github.event.inputs.developmentVersion }} -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml
+          mvn -B release:prepare -Prelease -DreleaseVersion=${{ github.event.inputs.releaseVersion }} -DdevelopmentVersion=${{ github.event.inputs.developmentVersion }} -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml -q
           git checkout ${{ github.base_ref }}
           git rebase release
-          mvn -B release:perform -Darguments=-DperformRelease -DperformRelease -Prelease -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml
+          mvn -B release:perform -Darguments=-DperformRelease -DperformRelease -Prelease -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml -q
         env:
           USER_NAME: ${{ secrets.USER_NAME }}
           ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
