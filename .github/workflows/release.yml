@@ -43,6 +43,9 @@ jobs:
           git checkout ${{ github.base_ref }}
           git rebase release
           mvn -B release:perform -Darguments=-DperformRelease -DperformRelease -Prelease -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml
+        env:
+          USER_NAME: ${{ secrets.USER_NAME }}
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
 
       - name: Push changes to ${{ github.base_ref }}
         uses: ad-m/github-push-action@v0.6.0
