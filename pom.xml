@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
    <modelVersion>4.0.0</modelVersion>
 
    <groupId>ro.gs1</groupId>
    <artifactId>jaxb-tools</artifactId>
-   <version>1.2-SNAPSHOT</version>
+   <version>1.2</version>
 
    <name>jaxb-tools</name>
    <url>http://www.gs1.ro</url>
@@ -27,7 +26,7 @@
       <connection>scm:git:https://github.com/gs1-romania/jaxb-tools.git</connection>
       <url>scm:git:https://github.com/gs1-romania/jaxb-tools.git</url>
       <developerConnection>scm:git:https://github.com/gs1-romania/jaxb-tools.git</developerConnection>
-      <tag>HEAD</tag>
+      <tag>jaxb-tools-1.2</tag>
    </scm>
    <repositories>
       <repository>
