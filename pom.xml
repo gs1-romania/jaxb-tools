@@ -158,9 +158,15 @@
                <version>3.0.0-M6</version>
                <configuration>
                   <scmCommentPrefix>[ci skip]</scmCommentPrefix>
+                  <testFailureIgnore>true</testFailureIgnore>
                </configuration>
             </plugin>
          </plugins>
       </pluginManagement>
    </build>
+   <profiles>
+      <profile>
+         <id>release</id>
+      </profile>
+   </profiles>
 </project>
