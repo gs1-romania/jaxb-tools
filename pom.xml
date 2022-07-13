@@ -52,6 +52,7 @@
       </developer>
    </developers>
    <properties>
+      <project.scm.id>github</project.scm.id>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
       <maven.compiler.source>11</maven.compiler.source>
       <maven.compiler.target>11</maven.compiler.target>
@@ -167,6 +168,9 @@
    <profiles>
       <profile>
          <id>release</id>
+         <properties>
+            <project.scm.id>github</project.scm.id>
+         </properties>
       </profile>
    </profiles>
 </project>
