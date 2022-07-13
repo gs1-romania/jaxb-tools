@@ -39,6 +39,7 @@ jobs:
       - name: Maven release ${{steps.metadata.outputs.current-version}}
         run: |
           git checkout -b release
+          git fetch --tags
           mvn -B release:prepare -Prelease -DreleaseVersion=${{ github.event.inputs.releaseVersion }} -DdevelopmentVersion=${{ github.event.inputs.developmentVersion }} -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml -q
           git checkout ${{ github.base_ref }}
           git rebase release
