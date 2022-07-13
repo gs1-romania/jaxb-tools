@@ -39,7 +39,7 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
 
    public static String FIELD_PROPERTY = "field";
 
-   public static String NAMESPACE_URI = "http://jaxb3-tools.gs1.ro/simplify";
+   public static String NAMESPACE_URI = "http://jaxb-tools.gs1.ro/simplify";
 
    public static QName LIST_ELEMENT_NAME = new QName(NAMESPACE_URI, "list");
 
