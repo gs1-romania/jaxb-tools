@@ -26,7 +26,7 @@ public class XJCInheritancePlugin extends Plugin {
 
    private static Logger logger = LoggerFactory.getLogger(XJCInheritancePlugin.class);
 
-   public static String NAMESPACE_URI = "http://jaxb3-tools.gs1.ro/inheritance";
+   public static String NAMESPACE_URI = "http://jaxb-tools.gs1.ro/inheritance";
 
    public static QName IMPLEMENTS_ELEMENT_NAME = new QName(NAMESPACE_URI, "implements");
 
