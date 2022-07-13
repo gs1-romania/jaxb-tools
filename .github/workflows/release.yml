@@ -10,7 +10,7 @@ jobs:
     name: release
 
     steps:
-      - uses: radcortez/project-metadata-action@main
+      - uses: radcortez/project-metadata-action@master
         name: Retrieve project metadata
         id: metadata
         with:
