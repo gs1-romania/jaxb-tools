@@ -36,13 +36,13 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-      - name: Maven release ${{steps.metadata.outputs.current-version}}
+      - name: Maven release
         run: |
-          git checkout -b release
+          git checkout -b release-${{ github.event.inputs.releaseVersion }}
           git fetch --tags
           mvn -B release:prepare -Prelease -DreleaseVersion=${{ github.event.inputs.releaseVersion }} -DdevelopmentVersion=${{ github.event.inputs.developmentVersion }} -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml -q
           git checkout ${{ github.base_ref }}
-          git rebase release
+          git rebase release-${{ github.event.inputs.releaseVersion }}
           mvn -B release:perform -Darguments=-DperformRelease -DperformRelease -Prelease -Pgithub -s $GITHUB_WORKSPACE/.github/workflows/maven-settings.xml -q
         env:
           USER_NAME: ${{ secrets.USER_NAME }}
