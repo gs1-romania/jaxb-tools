@@ -23,6 +23,12 @@
          <url>https://maven.pkg.github.com/gs1-romania/jaxb-tools</url>
       </snapshotRepository>
    </distributionManagement>
+   <scm>
+      <connection>scm:git:https://github.com/gs1-romania/jaxb-tools.git</connection>
+      <url>scm:git:https://github.com/gs1-romania/jaxb-tools.git</url>
+      <developerConnection>scm:git:https://github.com/gs1-romania/jaxb-tools.git</developerConnection>
+      <tag>HEAD</tag>
+   </scm>
    <repositories>
       <repository>
          <id>github</id>
