@@ -15,7 +15,7 @@ jobs:
         id: metadata
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
-          metadata-file-path: '.github/project.yml'
+          metadata-file-path: '$GITHUB_WORKSPACE/.github/project.yml'
 
       - uses: actions/checkout@v2
       - name: Set up JDK 11
