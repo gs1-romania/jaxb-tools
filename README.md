@@ -2,7 +2,7 @@
 
 This plugin generates the toString, equals and hashCode methods for classes generated with jaxb-xjc.
 
-It works only with JAXB 2.x.
+It works only with JAXB 2.x and XJC 2.3.x.
 Apache commons-lang3 is required.
 
 This library is tested only with GDSN XSD schemas. There are edge cases that are not considered.
@@ -17,6 +17,16 @@ This library is tested only with GDSN XSD schemas. There are edge cases that are
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
       <version>XXX</version>
+   </dependency>
+   <dependency>
+      <groupId>org.glassfish.jaxb</groupId>
+      <artifactId>jaxb-xjc</artifactId>
+      <version>2.3.3</version>
+   </dependency>
+   <dependency>
+      <groupId>javax.xml.bind</groupId>
+      <artifactId>jaxb-api</artifactId>
+      <version>2.3.1</version>
    </dependency>
    <dependency>
       <groupId>ro.gs1</groupId>

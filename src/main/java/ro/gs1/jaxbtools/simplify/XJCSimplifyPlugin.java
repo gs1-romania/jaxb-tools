@@ -15,15 +15,7 @@ import javax.xml.bind.annotation.XmlElementRef;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.namespace.QName;
 
-import com.sun.codemodel.JAnnotationArrayMember;
-import com.sun.codemodel.JAnnotationUse;
-import com.sun.codemodel.JAnnotationValue;
-import com.sun.codemodel.JClass;
-import com.sun.codemodel.JCodeModel;
-import com.sun.codemodel.JDefinedClass;
-import com.sun.codemodel.JFieldVar;
-import com.sun.codemodel.JMod;
-import com.sun.codemodel.JType;
+import com.sun.codemodel.*;
 import com.sun.tools.xjc.Options;
 import com.sun.tools.xjc.model.CCustomizations;
 import com.sun.tools.xjc.model.CPluginCustomization;
@@ -126,7 +118,7 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
    }
 
    private void replaceGenericList(Outline outline, JCodeModel model, ClassOutline classOutline,
-         CCustomizations customizations) {
+                                   CCustomizations customizations) {
       CPluginCustomization customization = customizations.find(REPLACE_GENERIC_LIST_ELEMENT_NAME.getNamespaceURI(),
             REPLACE_GENERIC_LIST_ELEMENT_NAME.getLocalPart());
       if (customization != null) {
@@ -154,7 +146,7 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
    }
 
    private void deleteJaxbElementList(Outline outline, JCodeModel model, ClassOutline classOutline,
-         CPropertyInfo cPropertyInfo, CCustomizations customizations) {
+                                      CPropertyInfo cPropertyInfo, CCustomizations customizations) {
       CPluginCustomization customization = customizations.find(DELETE_JAXB_ELEMENT_LIST_ELEMENT_NAME.getNamespaceURI(),
             DELETE_JAXB_ELEMENT_LIST_ELEMENT_NAME.getLocalPart());
       if (customization != null) {
@@ -167,7 +159,7 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
          }
          JFieldVar customizedJField = classOutline.implClass.fields()
                .get(cPropertyInfo.getName(false));
-         
+
          logger.debug("(XJCSimplifyPlugin) - refs size: {}", cPropertyInfo.ref()
                .size());
          JClass lowestCommonAncestorClass = findLowestCommonAncestorClass(outline, cPropertyInfo.ref());
@@ -204,7 +196,7 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
                   memberValues.remove("type");
                   xmlElementRefAnnotation.param("type", lowestCommonAncestorClass);
                } catch (NoSuchFieldException | SecurityException | IllegalArgumentException
-                     | IllegalAccessException e) {
+                        | IllegalAccessException e) {
                   logger.error(e.getMessage());
                }
             }
@@ -214,10 +206,23 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
    }
 
    private void breakRefsInFields(Outline outline, JCodeModel model, ClassOutline classOutline,
-         CPropertyInfo cPropertyInfo, JFieldVar customizedJField) {
+                                  CPropertyInfo cPropertyInfo, JFieldVar customizedJField) {
       Collection<? extends CTypeInfo> propertyRefs = cPropertyInfo.ref();
       JClass xmlElementRef = model.ref(XmlElement.class);
       Collection<JAnnotationUse> annotations = customizedJField.annotations();
+      Field values;
+      Class<?> jAnnotationStringValue;
+      Field valueFieldAnnotation;
+      try {
+         values = JAnnotationArrayMember.class.getDeclaredField("values");
+         values.setAccessible(true);
+         jAnnotationStringValue = Class.forName("com.sun.codemodel.JAnnotationStringValue");
+         valueFieldAnnotation = jAnnotationStringValue.getDeclaredField("value");
+         valueFieldAnnotation.setAccessible(true);
+      } catch (NoSuchFieldException | ClassNotFoundException e) {
+         throw new RuntimeException(e);
+      }
+
       for (CTypeInfo cTypeInfo : propertyRefs) {
          JType jType = cTypeInfo.toType(outline, Aspect.IMPLEMENTATION);
          logger.debug("(XJCSimplifyPlugin) - field: {}, type found: {}", customizedJField.name(), jType.name());
@@ -235,6 +240,7 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
                               .compareTo(xmlTypeRef) == 0)
                         .findFirst()
                         .orElse(null);
+
                   Entry<String, JAnnotationValue> propOrder = xmlTypeAnnotation.getAnnotationMembers()
                         .entrySet()
                         .stream()
@@ -243,15 +249,22 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
                         .orElse(null);
                   JAnnotationValue propOrderValue = propOrder.getValue();
                   JAnnotationArrayMember propOrderCast = (JAnnotationArrayMember) propOrderValue;
-                  Field values;
+
                   try {
-                     values = JAnnotationArrayMember.class.getDeclaredField("values");
-                     values.setAccessible(true);
                      List<?> valuesList = (List<?>) values.get(propOrderCast);
-                     valuesList.removeIf(bb -> StringUtils.equalsIgnoreCase((bb).toString(),
-                           customizedJField.name()));
-                  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException
-                        | IllegalAccessException e) {
+                     logger.debug("Aici: {} {}", valuesList, customizedJField.name());
+
+                     valuesList.removeIf(bb -> {
+                        try {
+                           JStringLiteral o1 = (JStringLiteral) valueFieldAnnotation.get(bb);
+                           return StringUtils.equalsIgnoreCase(o1.str,
+                                 customizedJField.name());
+                        } catch (IllegalAccessException e) {
+                           throw new RuntimeException(e);
+                        }
+                     });
+                  } catch (SecurityException | IllegalArgumentException
+                           | IllegalAccessException e) {
                      logger.error(e.getMessage());
                   }
                   propOrderCast.param(StringUtils.uncapitalize(aa.name()));
@@ -274,7 +287,12 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
                   JAnnotationValue namespaceCast = namespace.getValue();
                   JAnnotationUse annotate = newField.annotate(xmlElementRef);
                   annotate.param("name", aa.name());
-                  annotate.param("namespace", namespaceCast.toString());
+                  try {
+                     JStringLiteral name = (JStringLiteral) valueFieldAnnotation.get(namespaceCast);
+                     annotate.param("namespace", name);
+                  } catch (IllegalAccessException e) {
+                     throw new RuntimeException(e);
+                  }
                   generateGetter(classOutline, newField);
                   generateSetter(classOutline, newField);
                });

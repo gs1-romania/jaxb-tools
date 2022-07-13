@@ -50,7 +50,7 @@
       <maven.compiler.source>11</maven.compiler.source>
       <maven.compiler.target>11</maven.compiler.target>
       <version.junit>4.11</version.junit>
-      <version.jaxb.xjc>4.0.0</version.jaxb.xjc>
+      <version.jaxb.xjc>2.3.3</version.jaxb.xjc>
       <version.slf4j>1.7.36</version.slf4j>
       <version.commons.lang3>3.12.0</version.commons.lang3>
       <version.commons.collections>3.2.2</version.commons.collections>
@@ -62,21 +62,13 @@
          <groupId>org.glassfish.jaxb</groupId>
          <artifactId>jaxb-xjc</artifactId>
          <version>${version.jaxb.xjc}</version>
-         <exclusions>
-            <exclusion>
-               <groupId>jakarta.xml.bind</groupId>
-               <artifactId>jakarta.xml.bind-api</artifactId>
-            </exclusion>
-            <exclusion>
-               <groupId>jakarta.activation</groupId>
-               <artifactId>jakarta.activation-api</artifactId>
-            </exclusion>
-         </exclusions>
+         <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>javax.xml.bind</groupId>
          <artifactId>jaxb-api</artifactId>
          <version>${version.jaxb.api}</version>
+         <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.apache.commons</groupId>

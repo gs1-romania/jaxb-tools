@@ -1,38 +1,20 @@
 package ro.gs1.jaxbtools;
 
-import static com.sun.codemodel.JMod.PUBLIC;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-
-import javax.xml.bind.annotation.XmlElement;
-
-import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.sun.codemodel.JAnnotationStringValue;
-import com.sun.codemodel.JAnnotationUse;
-import com.sun.codemodel.JAnnotationValue;
-import com.sun.codemodel.JBlock;
-import com.sun.codemodel.JClass;
-import com.sun.codemodel.JCodeModel;
-import com.sun.codemodel.JExpr;
-import com.sun.codemodel.JFieldVar;
-import com.sun.codemodel.JMethod;
-import com.sun.codemodel.JType;
-import com.sun.codemodel.JVar;
+import com.sun.codemodel.*;
 import com.sun.tools.xjc.Plugin;
 import com.sun.tools.xjc.model.CTypeInfo;
 import com.sun.tools.xjc.outline.Aspect;
 import com.sun.tools.xjc.outline.ClassOutline;
 import com.sun.tools.xjc.outline.Outline;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.xml.bind.annotation.XmlElement;
+import java.util.*;
+import java.util.Map.Entry;
+
+import static com.sun.codemodel.JMod.PUBLIC;
 
 
 public abstract class AbstractPlugin extends Plugin {
@@ -196,6 +178,7 @@ public abstract class AbstractPlugin extends Plugin {
          logger.debug("(AbstractPlugin) - XmlElementRef found");
          JAnnotationUse annotate = customizedJField.annotate(xmlRef);
          Map<String, JAnnotationValue> annotationMembers = xmlElementRefAnnotation.getAnnotationMembers();
+         /*
          for (Entry<String, JAnnotationValue> annotationEntry : annotationMembers.entrySet()) {
             if (annotationEntry.getKey()
                   .equalsIgnoreCase("type")) {
@@ -210,6 +193,7 @@ public abstract class AbstractPlugin extends Plugin {
                }
             }
          }
+         */
          customizedJField.removeAnnotation(xmlElementRefAnnotation);
       }
    }
