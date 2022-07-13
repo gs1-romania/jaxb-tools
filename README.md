@@ -1,4 +1,4 @@
-# JAXB3-TOOLS - Plugin for [jaxb2-maven-plugin](https://www.mojohaus.org/jaxb2-maven-plugin/Documentation/v2.4/)
+# JAXB-TOOLS - Plugin for [jaxb2-maven-plugin](https://www.mojohaus.org/jaxb2-maven-plugin/Documentation/v2.4/)
 
 This plugin generates the toString, equals and hashCode methods for classes generated with jaxb-xjc.
 
@@ -30,7 +30,7 @@ This library is tested only with GDSN XSD schemas. There are edge cases that are
    </dependency>
    <dependency>
       <groupId>ro.gs1</groupId>
-      <artifactId>jaxb3-tools</artifactId>
+      <artifactId>jaxb-tools</artifactId>
       <version>XXX</version>
    </dependency>
    ...
