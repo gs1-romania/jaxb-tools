@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 
+import javax.xml.bind.annotation.XmlElement;
+
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -32,7 +34,6 @@ import com.sun.tools.xjc.outline.Aspect;
 import com.sun.tools.xjc.outline.ClassOutline;
 import com.sun.tools.xjc.outline.Outline;
 
-import jakarta.xml.bind.annotation.XmlElement;
 
 public abstract class AbstractPlugin extends Plugin {
 
@@ -68,10 +69,10 @@ public abstract class AbstractPlugin extends Plugin {
             .boxify()
             .isParameterized()
             && StringUtils.containsIgnoreCase(customizedJField.type()
-                  .name(), "list")) {
+            .name(), "list")) {
          getterBody._if(JExpr._this()
-               .ref(customizedJField)
-               .eq(JExpr._null()))
+                     .ref(customizedJField)
+                     .eq(JExpr._null()))
                ._then()
                .assign(JExpr._this()
                      .ref(customizedJField), JExpr._new(customizedJField.type()));
@@ -129,7 +130,7 @@ public abstract class AbstractPlugin extends Plugin {
                return o1.getValue()
                      .size()
                      - o2.getValue()
-                           .size();
+                     .size();
             });
       if (classWithMostParents.isEmpty()) {
          return null;

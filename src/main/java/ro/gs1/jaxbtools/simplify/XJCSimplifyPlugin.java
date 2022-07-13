@@ -10,16 +10,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementRef;
+import javax.xml.bind.annotation.XmlType;
 import javax.xml.namespace.QName;
 
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.SAXException;
-
 import com.sun.codemodel.JAnnotationArrayMember;
-import com.sun.codemodel.JAnnotationStringValue;
 import com.sun.codemodel.JAnnotationUse;
 import com.sun.codemodel.JAnnotationValue;
 import com.sun.codemodel.JClass;
@@ -37,9 +33,12 @@ import com.sun.tools.xjc.outline.Aspect;
 import com.sun.tools.xjc.outline.ClassOutline;
 import com.sun.tools.xjc.outline.Outline;
 
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementRef;
-import jakarta.xml.bind.annotation.XmlType;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXException;
+
 import ro.gs1.jaxbtools.AbstractPlugin;
 
 public class XJCSimplifyPlugin extends AbstractPlugin {
@@ -249,7 +248,7 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
                      values = JAnnotationArrayMember.class.getDeclaredField("values");
                      values.setAccessible(true);
                      List<?> valuesList = (List<?>) values.get(propOrderCast);
-                     valuesList.removeIf(bb -> StringUtils.equalsIgnoreCase(((JAnnotationStringValue) bb).toString(),
+                     valuesList.removeIf(bb -> StringUtils.equalsIgnoreCase((bb).toString(),
                            customizedJField.name()));
                   } catch (NoSuchFieldException | SecurityException | IllegalArgumentException
                         | IllegalAccessException e) {
@@ -272,7 +271,7 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
                         .filter(bb -> StringUtils.equalsIgnoreCase(bb.getKey(), "namespace"))
                         .findFirst()
                         .orElse(null);
-                  JAnnotationStringValue namespaceCast = (JAnnotationStringValue) namespace.getValue();
+                  JAnnotationValue namespaceCast = namespace.getValue();
                   JAnnotationUse annotate = newField.annotate(xmlElementRef);
                   annotate.param("name", aa.name());
                   annotate.param("namespace", namespaceCast.toString());

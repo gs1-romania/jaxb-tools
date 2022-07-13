@@ -33,7 +33,7 @@ jobs:
 
     - uses: actions/delete-package-versions@v2
       with: 
-        package-name: 'ro.gs1.jaxb3-tools'
+        package-name: 'ro.gs1.jaxb-tools'
         ignore-versions: '^[v\d.]+(?!-SNAPSHOT)$'
         min-versions-to-keep: 0
 
