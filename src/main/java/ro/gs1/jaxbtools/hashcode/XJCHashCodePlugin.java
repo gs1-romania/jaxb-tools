@@ -27,7 +27,7 @@ import com.sun.tools.xjc.outline.Outline;
 
 public class XJCHashCodePlugin extends Plugin {
 
-   private static Logger logger = LoggerFactory.getLogger(XJCHashCodePlugin.class);
+   private static final Logger logger = LoggerFactory.getLogger(XJCHashCodePlugin.class);
 
    @Override
    public String getOptionName() {
@@ -48,37 +48,26 @@ public class XJCHashCodePlugin extends Plugin {
    public boolean run(Outline outline, Options opt, ErrorHandler errorHandler) throws SAXException {
       JCodeModel model = new JCodeModel();
       JClass hashCodeBuilderClass = model.ref(HashCodeBuilder.class);
-      logger.debug("(XJCHashCodePlugin) Found {} classes.", outline.getClasses()
-            .size());
-      for (ClassOutline o : outline.getClasses()) {
-         // remove static fields
-         Set<Entry<String, JFieldVar>> fields = o.implClass.fields()
-               .entrySet()
-               .stream()
-               .filter(aa -> (aa.getValue()
-                     .mods()
-                     .getValue() & STATIC) == 0)
+      logger.debug("(XJCHashCodePlugin) Found {} classes.", outline.getClasses().size());
+      for (ClassOutline classOutline : outline.getClasses()) {
+         Set<Entry<String, JFieldVar>> fields = classOutline.implClass.fields().entrySet().stream()
+               .filter(e -> (e.getValue().mods().getValue() & STATIC) == 0)
                .collect(Collectors.toSet());
-         if (fields.size() == 0) {
-            logger.debug("(XJCHashCodePlugin) Skip hashCode for class {}, reason: no fields.", o.implClass.name());
+         if (fields.isEmpty()) {
+            logger.debug("(XJCHashCodePlugin) Skip hashCode for class {}: no instance fields.", classOutline.implClass.name());
             continue;
          }
-         logger.debug("(XJCHashCodePlugin) Generate hashCode for class {}.", o.implClass.name());
-         JMethod method = o.implClass.method(PUBLIC, int.class, "hashCode");
+         logger.debug("(XJCHashCodePlugin) Generating hashCode for class {}.", classOutline.implClass.name());
+         JMethod method = classOutline.implClass.method(PUBLIC, int.class, "hashCode");
          method.annotate(Override.class);
          JBlock body = method.body();
-         JExpr.lit("17");
-         JVar equalsBuilder = body.decl(0, hashCodeBuilderClass, "hashCodeBuilderBuilder",
-               JExpr._new(hashCodeBuilderClass)
-                     .arg(JExpr.lit(17))
-                     .arg(JExpr.lit(31)));
+         JVar hashCodeBuilder = body.decl(0, hashCodeBuilderClass, "hashCodeBuilder",
+               JExpr._new(hashCodeBuilderClass).arg(JExpr.lit(17)).arg(JExpr.lit(31)));
          for (Entry<String, JFieldVar> e : fields) {
-            JFieldVar v = e.getValue();
-            logger.debug("(XJCHashCodePlugin) Append {} for hashCode.", e.getKey());
-            body.add(equalsBuilder.invoke("append")
-                  .arg(v));
+            logger.debug("(XJCHashCodePlugin) Appending field {} to hashCode.", e.getKey());
+            body.add(hashCodeBuilder.invoke("append").arg(e.getValue()));
          }
-         body._return(equalsBuilder.invoke("toHashCode"));
+         body._return(hashCodeBuilder.invoke("toHashCode"));
       }
       return true;
    }

@@ -1,134 +1,128 @@
-# JAXB-TOOLS - Plugin for [jaxb2-maven-plugin](https://www.mojohaus.org/jaxb2-maven-plugin/Documentation/v2.4/)
+# jaxb-tools
 
-This plugin generates the toString, equals and hashCode methods for classes generated with jaxb-xjc.
+XJC plugins for [Jakarta XML Binding](https://jakarta.ee/specifications/xml-binding/) that generate `toString`, `equals`, `hashCode`, inheritance declarations, and list simplifications for JAXB-generated classes.
 
-It works only with JAXB 2.x and XJC 2.3.x.
-Apache commons-lang3 is required.
+Available on [Maven Central](https://central.sonatype.com/artifact/ro.gs1/jaxb-tools) and [GitHub Packages](https://github.com/gs1-romania/jaxb-tools/packages).
 
-This library is tested only with GDSN XSD schemas. There are edge cases that are not considered.
+## Requirements
 
-## Usage
+- Jakarta XML Binding 4.x (`jaxb-xjc` 4.x)
+- Apache Commons Lang 3.x
+
+## Installation
 
 ```xml
-
-<dependencies>
-   ...
-   <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-      <version>XXX</version>
-   </dependency>
-   <dependency>
-      <groupId>org.glassfish.jaxb</groupId>
-      <artifactId>jaxb-xjc</artifactId>
-      <version>2.3.3</version>
-   </dependency>
-   <dependency>
-      <groupId>javax.xml.bind</groupId>
-      <artifactId>jaxb-api</artifactId>
-      <version>2.3.1</version>
-   </dependency>
-   <dependency>
-      <groupId>ro.gs1</groupId>
-      <artifactId>jaxb-tools</artifactId>
-      <version>XXX</version>
-   </dependency>
-   ...
-</dependencies>
+<dependency>
+   <groupId>ro.gs1</groupId>
+   <artifactId>jaxb-tools</artifactId>
+   <version>VERSION</version>
+</dependency>
 ```
 
-## Plugin toString/hashCode/equals
-
-Generates the toString/hashCode/equals method for all classes.
-It cannot be used in bindings file.
-
-### Usage
+Use as a plugin dependency in your XJC configuration:
 
 ```xml
-
-<build>
-   ...
-   <plugins>
-      ...
-      <plugin>
-         <groupId>org.codehaus.mojo</groupId>
-         <artifactId>jaxb2-maven-plugin</artifactId>
-         <version>${version.jaxb2-maven-plugin}</version>
-         <executions>
-            <execution>
-               <id>xjc</id>
-               <goals>
-                  <goal>xjc</goal>
-               </goals>
-            </execution>
-         </executions>
-         <configuration>
-            <arguments>
-               <argument>-Xgs1-tostring</argument>
-               <argument>-Xgs1-hashcode</argument>
-               <argument>-Xgs1-equals</argument>
-            </arguments>
-         </configuration>
-         <dependencies>
-            <dependency>
-               <groupId>ro.gs1</groupId>
-               <artifactId>jaxb3-tools</artifactId>
-               <version>${version.jaxb2.tools}</version>
-            </dependency>
-         </dependencies>
-      </plugin>
-      ...
-   </plugins>
-   ...
-</build>
+<plugin>
+   <groupId>org.codehaus.mojo</groupId>
+   <artifactId>jaxb2-maven-plugin</artifactId>
+   <version>VERSION</version>
+   <executions>
+      <execution>
+         <id>xjc</id>
+         <goals><goal>xjc</goal></goals>
+      </execution>
+   </executions>
+   <configuration>
+      <arguments>
+         <argument>-Xgs1-tostring</argument>
+         <argument>-Xgs1-hashcode</argument>
+         <argument>-Xgs1-equals</argument>
+      </arguments>
+   </configuration>
+   <dependencies>
+      <dependency>
+         <groupId>ro.gs1</groupId>
+         <artifactId>jaxb-tools</artifactId>
+         <version>VERSION</version>
+      </dependency>
+   </dependencies>
+</plugin>
 ```
 
-## Plugin inheritance
+---
 
-Provides the ability to specify the implementation of a class.
-The implementation class will not be generated and must be in the classpath.
-It can be used in bindings file.
+## Plugins
 
-### Usage
+### toString / hashCode / equals
+
+Activated via XJC arguments. Generates the corresponding method for every class that has at least one instance field. Classes with no instance fields are skipped for `toString` and `hashCode`; `equals` is always generated.
+
+| Plugin | Argument |
+|---|---|
+| toString | `-Xgs1-tostring` |
+| hashCode | `-Xgs1-hashcode` |
+| equals | `-Xgs1-equals` |
+
+---
+
+### inheritance
+
+Activated via `-Xgs1-inheritance`. Adds `implements` declarations to generated classes using XSD bindings.
+
+**Bindings namespace:** `http://jaxb-tools.gs1.ro/inheritance`
 
 ```xml
+<jaxb:bindings version="3.0"
+               xmlns:jaxb="https://jakarta.ee/xml/ns/jaxb"
+               xmlns:xs="http://www.w3.org/2001/XMLSchema"
+               xmlns:inheritance="http://jaxb-tools.gs1.ro/inheritance">
 
-...
-   <jxb:bindings schemaLocation="../xsd/gs1/gdsn/AlcoholInformationModule.xsd">
-      <jxb:bindings node="//xsd:complexType[@name='AlcoholInformationModuleType']">
+   <jaxb:bindings schemaLocation="your-schema.xsd" node="/xs:schema">
+      <jaxb:bindings node="xs:complexType[@name='AlcoholInformationModuleType']">
          <inheritance:implements>ro.gs1.BasicExtensionType</inheritance:implements>
-      </jxb:bindings>
-   </jxb:bindings>
-...
+      </jaxb:bindings>
+   </jaxb:bindings>
+
+</jaxb:bindings>
 ```
 
+The specified class must be present on the classpath — it is not generated.
 
-## Plugin simplify
+---
 
+### simplify
 
-It can be used in bindings file.
+Activated via `-Xgs1-simplify`. Simplifies generated list fields using XSD bindings.
 
-* replaceGenericList - Change the generic type of a list to the desired type.
-* deleteJaxbElementList - If the list is of type List<JAXBElement<?>> then it will be reduced to List<?>
+**Bindings namespace:** `http://jaxb-tools.gs1.ro/simplify`
 
-### Usage
+#### replaceGenericList
+
+Changes the generic type of a list field to a specific type.
 
 ```xml
+<jaxb:bindings version="3.0"
+               xmlns:jaxb="https://jakarta.ee/xml/ns/jaxb"
+               xmlns:xs="http://www.w3.org/2001/XMLSchema"
+               xmlns:simplify="http://jaxb-tools.gs1.ro/simplify">
 
-...
-
-   <jxb:bindings schemaLocation="../xsd/gs1/shared/SharedCommon.xsd">
-      <jxb:bindings node="//xsd:complexType[@name='ExtensionType']">
+   <jaxb:bindings schemaLocation="your-schema.xsd" node="/xs:schema">
+      <jaxb:bindings node="xs:complexType[@name='ExtensionType']">
          <simplify:replaceGenericList field="anies">ro.gs1.BasicExtensionType</simplify:replaceGenericList>
-      </jxb:bindings>
-   </jxb:bindings>
-   
-   <jxb:bindings schemaLocation="../xsd/sbdh/BusinessScope.xsd">
-      <jxb:bindings node="//xsd:complexType[@name='Scope']//xsd:element[@ref='ScopeInformation']">
-         <simplify:deleteJaxbElementList/>
-      </jxb:bindings>
-   </jxb:bindings>
-...
+      </jaxb:bindings>
+   </jaxb:bindings>
+
+</jaxb:bindings>
 ```
 
+#### deleteJaxbElementList
 
+Replaces a `List<JAXBElement<?>>` field with a typed list based on the lowest common ancestor of the referenced types. If the types share no common ancestor (other than `Object`), the field is removed and replaced with individual typed fields.
+
+```xml
+<jaxb:bindings schemaLocation="your-schema.xsd" node="/xs:schema">
+   <jaxb:bindings node="xs:complexType[@name='Scope']//xs:element[@ref='ScopeInformation']">
+      <simplify:deleteJaxbElementList/>
+   </jaxb:bindings>
+</jaxb:bindings>
+```

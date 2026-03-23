@@ -27,7 +27,7 @@ import com.sun.tools.xjc.outline.Outline;
 
 public class XJCEqualsPlugin extends Plugin {
 
-   private static Logger logger = LoggerFactory.getLogger(XJCEqualsPlugin.class);
+   private static final Logger logger = LoggerFactory.getLogger(XJCEqualsPlugin.class);
 
    @Override
    public String getOptionName() {
@@ -48,45 +48,28 @@ public class XJCEqualsPlugin extends Plugin {
    public boolean run(Outline outline, Options opt, ErrorHandler errorHandler) throws SAXException {
       JCodeModel model = new JCodeModel();
       JClass equalsBuilderClass = model.ref(EqualsBuilder.class);
-      logger.debug("(XJCEqualsPlugin) Found {} classes.", outline.getClasses()
-            .size());
-      for (ClassOutline o : outline.getClasses()) {
-         logger.debug("(XJCEqualsPlugin) Generate equals for class {}.", o.implClass.name());
-         JMethod method = o.implClass.method(PUBLIC, boolean.class, "equals");
+      logger.debug("(XJCEqualsPlugin) Found {} classes.", outline.getClasses().size());
+      for (ClassOutline classOutline : outline.getClasses()) {
+         logger.debug("(XJCEqualsPlugin) Generating equals for class {}.", classOutline.implClass.name());
+         JMethod method = classOutline.implClass.method(PUBLIC, boolean.class, "equals");
          method.annotate(Override.class);
          JVar that = method.param(Object.class, "that");
          JBlock body = method.body();
-         body._if(JExpr._this()
-               .eq(that))
-               ._then()
-               ._return(JExpr.lit(true));
-         body._if(that.eq(JExpr._null()))
-               ._then()
-               ._return(JExpr.lit(false));
-         body._if(JExpr.invoke("getClass")
-               .ne(JExpr.invoke(that, "getClass")))
-               ._then()
-               ._return(JExpr.lit(false));
-         // remove static fields
-         Set<Entry<String, JFieldVar>> fields = o.implClass.fields()
-               .entrySet()
-               .stream()
-               .filter(aa -> (aa.getValue()
-                     .mods()
-                     .getValue() & STATIC) == 0)
+         body._if(JExpr._this().eq(that))._then()._return(JExpr.lit(true));
+         body._if(that.eq(JExpr._null()))._then()._return(JExpr.lit(false));
+         body._if(JExpr.invoke("getClass").ne(JExpr.invoke(that, "getClass")))._then()._return(JExpr.lit(false));
+         Set<Entry<String, JFieldVar>> fields = classOutline.implClass.fields().entrySet().stream()
+               .filter(e -> (e.getValue().mods().getValue() & STATIC) == 0)
                .collect(Collectors.toSet());
-         if (fields.size() == 0) {
+         if (fields.isEmpty()) {
             body._return(JExpr.lit(true));
             continue;
          }
          JVar equalsBuilder = body.decl(0, equalsBuilderClass, "equalsBuilder", JExpr._new(equalsBuilderClass));
-         JVar other = body.decl(0, o.implClass, "other", JExpr.cast(o.implClass, that));
+         JVar other = body.decl(0, classOutline.implClass, "other", JExpr.cast(classOutline.implClass, that));
          for (Entry<String, JFieldVar> e : fields) {
-            JFieldVar v = e.getValue();
-            logger.debug("(XJCEqualsPlugin) Append {} for equals.", e.getKey());
-            body.add(equalsBuilder.invoke("append")
-                  .arg(v)
-                  .arg(other.ref(v)));
+            logger.debug("(XJCEqualsPlugin) Appending field {} to equals.", e.getKey());
+            body.add(equalsBuilder.invoke("append").arg(e.getValue()).arg(other.ref(e.getValue())));
          }
          body._return(equalsBuilder.invoke("isEquals"));
       }

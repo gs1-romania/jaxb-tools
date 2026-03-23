@@ -19,182 +19,112 @@ import static com.sun.codemodel.JMod.PUBLIC;
 
 public abstract class AbstractPlugin extends Plugin {
 
-   private static Logger logger = LoggerFactory.getLogger(AbstractPlugin.class);
+   private static final Logger logger = LoggerFactory.getLogger(AbstractPlugin.class);
 
-   protected boolean removeGetterIfExists(ClassOutline classOutline, JFieldVar customizedJField) {
+   protected boolean removeGetterIfExists(ClassOutline classOutline, JFieldVar field) {
       return classOutline.implClass.methods()
-            .removeIf(aa -> {
-               if (("get" + customizedJField.name()).equalsIgnoreCase(((JMethod) aa).name())) {
-                  return true;
-               }
-               return false;
-            });
+            .removeIf(m -> ("get" + field.name()).equalsIgnoreCase(((JMethod) m).name()));
    }
 
-   protected boolean removeSetterIfExists(ClassOutline classOutline, JFieldVar customizedJField) {
+   protected boolean removeSetterIfExists(ClassOutline classOutline, JFieldVar field) {
       return classOutline.implClass.methods()
-            .removeIf(aa -> {
-               if (("set" + customizedJField.name()).equalsIgnoreCase(((JMethod) aa).name())) {
-                  return true;
-               }
-               return false;
-            });
+            .removeIf(m -> ("set" + field.name()).equalsIgnoreCase(((JMethod) m).name()));
    }
 
-   protected void generateGetter(ClassOutline classOutline, JFieldVar customizedJField) {
-      boolean removeGetterIfExists = removeGetterIfExists(classOutline, customizedJField);
-      logger.debug("(AbstractPlugin) getter removed for field ({}): {}", customizedJField.name(), removeGetterIfExists);
-      JMethod getterMethod = classOutline.implClass.method(PUBLIC, customizedJField.type(),
-            "get" + StringUtils.capitalize(customizedJField.name()));
-      JBlock getterBody = getterMethod.body();
-      if (customizedJField.type()
-            .boxify()
-            .isParameterized()
-            && StringUtils.containsIgnoreCase(customizedJField.type()
-            .name(), "list")) {
-         getterBody._if(JExpr._this()
-                     .ref(customizedJField)
-                     .eq(JExpr._null()))
+   protected void generateGetter(ClassOutline classOutline, JFieldVar field) {
+      boolean removed = removeGetterIfExists(classOutline, field);
+      logger.debug("(AbstractPlugin) getter removed for field ({}): {}", field.name(), removed);
+      JMethod getter = classOutline.implClass.method(PUBLIC, field.type(),
+            "get" + StringUtils.capitalize(field.name()));
+      JBlock body = getter.body();
+      if (field.type().boxify().isParameterized()
+            && StringUtils.containsIgnoreCase(field.type().name(), "list")) {
+         body._if(JExpr._this().ref(field).eq(JExpr._null()))
                ._then()
-               .assign(JExpr._this()
-                     .ref(customizedJField), JExpr._new(customizedJField.type()));
+               .assign(JExpr._this().ref(field), JExpr._new(field.type()));
       }
-      getterBody._return(customizedJField);
-      logger.debug("(AbstractPlugin) generated getter for field", customizedJField.name());
+      body._return(field);
+      logger.debug("(AbstractPlugin) generated getter for field {}", field.name());
    }
 
-   protected void generateSetter(ClassOutline classOutline, JFieldVar customizedJField) {
-      boolean removeSetterIfExists = removeSetterIfExists(classOutline, customizedJField);
-      logger.debug("(AbstractPlugin) setter removed for field ({}): {}", customizedJField.name(), removeSetterIfExists);
-      JMethod setterMethod = classOutline.implClass.method(PUBLIC, void.class,
-            "set" + StringUtils.capitalize(customizedJField.name()));
-      JVar that = setterMethod.param(customizedJField.type(), customizedJField.name());
-      JBlock setterBody = setterMethod.body();
-      setterBody.assign(JExpr._this()
-            .ref(customizedJField), that);
-      logger.debug("(AbstractPlugin) generated setter for field", customizedJField.name());
+   protected void generateSetter(ClassOutline classOutline, JFieldVar field) {
+      boolean removed = removeSetterIfExists(classOutline, field);
+      logger.debug("(AbstractPlugin) setter removed for field ({}): {}", field.name(), removed);
+      JMethod setter = classOutline.implClass.method(PUBLIC, void.class,
+            "set" + StringUtils.capitalize(field.name()));
+      JVar param = setter.param(field.type(), field.name());
+      setter.body().assign(JExpr._this().ref(field), param);
+      logger.debug("(AbstractPlugin) generated setter for field {}", field.name());
    }
 
    protected JClass findLowestCommonAncestorClass(Outline outline, Collection<? extends CTypeInfo> cPropertyInfo) {
       List<JClass> classes = new ArrayList<>();
       for (CTypeInfo cTypeInfo : cPropertyInfo) {
          JType jType = cTypeInfo.toType(outline, Aspect.IMPLEMENTATION);
-         classes.addAll(jType.boxify()
-               .getTypeParameters());
+         classes.addAll(jType.boxify().getTypeParameters());
       }
       return findLowestCommonAncestorClass(outline, classes);
    }
 
    protected JClass findLowestCommonAncestorClass(Outline outline, List<JClass> classes) {
-      // because JClass does not have equlas we cannot use it for searching
-      // <full name of the class, list of full name extended classes>
-      Map<String, List<String>> classesMatrix = new HashMap<>();
+      // JClass does not implement equals, so use full names for comparison.
+      // Map: full class name -> list of full names of itself and all ancestors (in order)
+      Map<String, List<String>> ancestorMap = new HashMap<>();
       for (JClass jClass : classes) {
          logger.debug("(AbstractPlugin) - find class: {}", jClass.name());
-         if (!classesMatrix.containsKey(jClass.fullName())) {
-            classesMatrix.put(jClass.fullName(), new ArrayList<>());
+         if (!ancestorMap.containsKey(jClass.fullName())) {
+            ancestorMap.put(jClass.fullName(), new ArrayList<>());
          }
-         // put the classes in order, it is important for searching the first
-         // class, otherwise Object.class is always selected
-         List<String> parentsList = classesMatrix.get(jClass.fullName());
-         parentsList.add(jClass.fullName());
-         JClass jExtends = jClass._extends();
-         while (jExtends != null) {
-            logger.debug("(AbstractPlugin) - class: {} extends: {}", jClass.name(), jExtends.name());
-            parentsList.add(jExtends.fullName());
-            jExtends = jExtends._extends();
+         // Order matters: self first, then ancestors — avoids always selecting Object
+         List<String> ancestors = ancestorMap.get(jClass.fullName());
+         ancestors.add(jClass.fullName());
+         JClass parent = jClass._extends();
+         while (parent != null) {
+            logger.debug("(AbstractPlugin) - class: {} extends: {}", jClass.name(), parent.name());
+            ancestors.add(parent.fullName());
+            parent = parent._extends();
          }
       }
-      logger.debug("(AbstractPlugin) - classesMatrix: {}", classesMatrix);
-      Optional<Entry<String, List<String>>> classWithMostParents = classesMatrix.entrySet()
+      logger.debug("(AbstractPlugin) - ancestorMap: {}", ancestorMap);
+      Optional<Entry<String, List<String>>> deepest = ancestorMap.entrySet()
             .stream()
-            .max((o1, o2) -> {
-               return o1.getValue()
-                     .size()
-                     - o2.getValue()
-                     .size();
-            });
-      if (classWithMostParents.isEmpty()) {
+            .max(Comparator.comparingInt(e -> e.getValue().size()));
+      if (deepest.isEmpty()) {
          return null;
       }
-      Entry<String, List<String>> maxParentsClass = classWithMostParents.get();
-      int pointerOfList = 0;
-      logger.debug("(AbstractPlugin) - max parents class: {}", maxParentsClass.getKey());
-      while (pointerOfList < maxParentsClass.getValue()
-            .size()) {
-         int classFoundIn = 0;
-         for (Entry<String, List<String>> classMatrix : classesMatrix.entrySet()) {
-            List<String> classExtendList = classMatrix.getValue();
-            String foundParentClass = null;
-            for (String classParent : classExtendList) {
-               if (classParent.equals(maxParentsClass.getValue()
-                     .get(pointerOfList))) {
-                  foundParentClass = classParent;
-                  break;
-               }
-            }
-            if (foundParentClass != null) {
-               logger.debug("(AbstractPlugin) - parent class found: {} in list of: {}", foundParentClass,
-                     classMatrix.getKey());
-               classFoundIn++;
-            }
-         }
-         logger.debug("(AbstractPlugin) - class {} found in {} list parent classes", maxParentsClass.getValue()
-               .get(pointerOfList), classFoundIn);
-         if (classFoundIn == classesMatrix.size()) {
-            logger.debug("(AbstractPlugin) - LCA found at pointer: {}, {}", pointerOfList, maxParentsClass.getValue()
-                  .get(pointerOfList));
+      Entry<String, List<String>> deepestEntry = deepest.get();
+      logger.debug("(AbstractPlugin) - deepest class: {}", deepestEntry.getKey());
+      int pointer = 0;
+      while (pointer < deepestEntry.getValue().size()) {
+         String candidate = deepestEntry.getValue().get(pointer);
+         long matchCount = ancestorMap.values().stream()
+               .filter(ancestors -> ancestors.contains(candidate))
+               .count();
+         logger.debug("(AbstractPlugin) - class {} found in {} ancestor lists", candidate, matchCount);
+         if (matchCount == ancestorMap.size()) {
+            logger.debug("(AbstractPlugin) - LCA found: {}", candidate);
             break;
          }
-         pointerOfList++;
+         pointer++;
       }
-      String lca = maxParentsClass.getValue()
-            .get(pointerOfList);
+      String lca = deepestEntry.getValue().get(pointer);
       return classes.stream()
-            .filter(aa -> aa.fullName()
-                  .equals(lca))
+            .filter(c -> c.fullName().equals(lca))
             .findFirst()
             .orElse(null);
    }
 
-   protected void replaceXmlElementRefAnnotation(JCodeModel model, JFieldVar customizedJField) {
-      JClass listRef = model.ref(List.class);
-      JClass objectRef = model.ref(Object.class);
-      JClass listOfObjectRef = listRef.narrow(objectRef);
-      customizedJField.type(listOfObjectRef);
-      JClass xmlRef = model.ref(XmlElement.class);
-      Collection<JAnnotationUse> annotations = customizedJField.annotations();
-      JAnnotationUse xmlElementRefAnnotation = annotations.stream()
-            .filter(aa -> {
-               JClass annotationClass = aa.getAnnotationClass();
-               if (StringUtils.equals(annotationClass.name(), "XmlElementRef")) {
-                  return true;
-               }
-               return false;
-            })
+   protected void replaceXmlElementRefAnnotation(JCodeModel model, JFieldVar field) {
+      field.type(model.ref(List.class).narrow(model.ref(Object.class)));
+      JAnnotationUse xmlElementRefAnnotation = field.annotations()
+            .stream()
+            .filter(a -> StringUtils.equals(a.getAnnotationClass().name(), "XmlElementRef"))
             .findFirst()
             .orElse(null);
       if (xmlElementRefAnnotation != null) {
-         logger.debug("(AbstractPlugin) - XmlElementRef found");
-         JAnnotationUse annotate = customizedJField.annotate(xmlRef);
-         Map<String, JAnnotationValue> annotationMembers = xmlElementRefAnnotation.getAnnotationMembers();
-         /*
-         for (Entry<String, JAnnotationValue> annotationEntry : annotationMembers.entrySet()) {
-            if (annotationEntry.getKey()
-                  .equalsIgnoreCase("type")) {
-               continue;
-            }
-            if (annotationEntry.getValue() instanceof JAnnotationStringValue) {
-               JAnnotationStringValue annotationEntryCast = (JAnnotationStringValue) annotationEntry.getValue();
-               if (StringUtils.equalsAny(annotationEntryCast.toString(), "true", "false")) {
-                  annotate.param(annotationEntry.getKey(), BooleanUtils.toBoolean(annotationEntryCast.toString()));
-               } else {
-                  annotate.param(annotationEntry.getKey(), annotationEntryCast.toString());
-               }
-            }
-         }
-         */
-         customizedJField.removeAnnotation(xmlElementRefAnnotation);
+         logger.debug("(AbstractPlugin) - XmlElementRef found, replacing with XmlElement");
+         field.annotate(model.ref(XmlElement.class));
+         field.removeAnnotation(xmlElementRefAnnotation);
       }
    }
 }

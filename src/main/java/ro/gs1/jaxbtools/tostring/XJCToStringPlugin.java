@@ -27,7 +27,7 @@ import com.sun.tools.xjc.outline.Outline;
 
 public class XJCToStringPlugin extends Plugin {
 
-   private static Logger logger = LoggerFactory.getLogger(XJCToStringPlugin.class);
+   private static final Logger logger = LoggerFactory.getLogger(XJCToStringPlugin.class);
 
    @Override
    public String getOptionName() {
@@ -47,36 +47,27 @@ public class XJCToStringPlugin extends Plugin {
    @Override
    public boolean run(Outline outline, Options opt, ErrorHandler errorHandler) throws SAXException {
       JCodeModel model = new JCodeModel();
-      JClass equalsBuilderClass = model.ref(ToStringBuilder.class);
-      logger.debug("(XJCToStringPlugin) Found {} classes.", outline.getClasses()
-            .size());
-      for (ClassOutline o : outline.getClasses()) {
-         logger.debug("(XJCToStringPlugin) Generate toString for class {}.", o.implClass.name());
-         // remove static fields
-         Set<Entry<String, JFieldVar>> fields = o.implClass.fields()
-               .entrySet()
-               .stream()
-               .filter(aa -> (aa.getValue()
-                     .mods()
-                     .getValue() & STATIC) == 0)
+      JClass toStringBuilderClass = model.ref(ToStringBuilder.class);
+      logger.debug("(XJCToStringPlugin) Found {} classes.", outline.getClasses().size());
+      for (ClassOutline classOutline : outline.getClasses()) {
+         Set<Entry<String, JFieldVar>> fields = classOutline.implClass.fields().entrySet().stream()
+               .filter(e -> (e.getValue().mods().getValue() & STATIC) == 0)
                .collect(Collectors.toSet());
-         if (fields.size() == 0) {
-            logger.debug("(XJCHashCodePlugin) Skip toString for class {}, reason: no fields.", o.implClass.name());
+         if (fields.isEmpty()) {
+            logger.debug("(XJCToStringPlugin) Skip toString for class {}: no instance fields.", classOutline.implClass.name());
             continue;
          }
-         JMethod method = o.implClass.method(PUBLIC, String.class, "toString");
+         logger.debug("(XJCToStringPlugin) Generating toString for class {}.", classOutline.implClass.name());
+         JMethod method = classOutline.implClass.method(PUBLIC, String.class, "toString");
          method.annotate(Override.class);
          JBlock body = method.body();
-         JVar toStringBuilder = body.decl(0, equalsBuilderClass, "toStringBuilder", JExpr._new(equalsBuilderClass)
-               .arg(JExpr._this()));
+         JVar builder = body.decl(0, toStringBuilderClass, "builder",
+               JExpr._new(toStringBuilderClass).arg(JExpr._this()));
          for (Entry<String, JFieldVar> e : fields) {
-            JFieldVar v = e.getValue();
-            logger.debug("(XJCToStringPlugin) Append {} for toString.", e.getKey());
-            body.add(toStringBuilder.invoke("append")
-                  .arg(e.getKey())
-                  .arg(v));
+            logger.debug("(XJCToStringPlugin) Appending field {} to toString.", e.getKey());
+            body.add(builder.invoke("append").arg(e.getKey()).arg(e.getValue()));
          }
-         body._return(toStringBuilder.invoke("toString"));
+         body._return(builder.invoke("toString"));
       }
       return true;
    }

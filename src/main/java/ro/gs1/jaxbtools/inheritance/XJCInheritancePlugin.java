@@ -1,8 +1,5 @@
 package ro.gs1.jaxbtools.inheritance;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -17,24 +14,17 @@ import com.sun.codemodel.JClass;
 import com.sun.codemodel.JCodeModel;
 import com.sun.tools.xjc.Options;
 import com.sun.tools.xjc.Plugin;
-import com.sun.tools.xjc.model.CCustomizations;
 import com.sun.tools.xjc.model.CPluginCustomization;
 import com.sun.tools.xjc.outline.ClassOutline;
 import com.sun.tools.xjc.outline.Outline;
 
 public class XJCInheritancePlugin extends Plugin {
 
-   private static Logger logger = LoggerFactory.getLogger(XJCInheritancePlugin.class);
+   private static final Logger logger = LoggerFactory.getLogger(XJCInheritancePlugin.class);
 
-   public static String NAMESPACE_URI = "http://jaxb-tools.gs1.ro/inheritance";
+   public static final String NAMESPACE_URI = "http://jaxb-tools.gs1.ro/inheritance";
 
-   public static QName IMPLEMENTS_ELEMENT_NAME = new QName(NAMESPACE_URI, "implements");
-
-   private List<QName> qNames = Arrays.asList(IMPLEMENTS_ELEMENT_NAME);
-
-   private List<String> uris;
-
-   private Set<QName> names;
+   public static final QName IMPLEMENTS_ELEMENT_NAME = new QName(NAMESPACE_URI, "implements");
 
    @Override
    public String getOptionName() {
@@ -48,24 +38,12 @@ public class XJCInheritancePlugin extends Plugin {
 
    @Override
    public List<String> getCustomizationURIs() {
-      if (this.uris == null) {
-         this.uris = new ArrayList<String>(qNames.size());
-         for (QName qName : qNames) {
-            final String namespaceURI = qName.getNamespaceURI();
-            if (!(namespaceURI == null || namespaceURI.length() == 0)) {
-               this.uris.add(namespaceURI);
-            }
-         }
-      }
-      return this.uris;
+      return List.of(NAMESPACE_URI);
    }
 
    @Override
    public boolean isCustomizationTagName(String namespaceURI, String localName) {
-      if (this.names == null) {
-         this.names = new HashSet<QName>(qNames);
-      }
-      return this.names.contains(new QName(namespaceURI, localName));
+      return IMPLEMENTS_ELEMENT_NAME.equals(new QName(namespaceURI, localName));
    }
 
    @Override
@@ -75,28 +53,23 @@ public class XJCInheritancePlugin extends Plugin {
 
    @Override
    public boolean run(Outline outline, Options opt, ErrorHandler errorHandler) throws SAXException {
-      logger.debug("(XJCInheritancePlugin) Found {} classes.", outline.getClasses()
-            .size());
+      logger.debug("(XJCInheritancePlugin) Found {} classes.", outline.getClasses().size());
       JCodeModel model = new JCodeModel();
       for (ClassOutline classOutline : outline.getClasses()) {
-         if (!classOutline.target.getCustomizations()
-               .isEmpty()) {
-            CCustomizations customizations = classOutline.target.getCustomizations();
-            CPluginCustomization customization = customizations.find(IMPLEMENTS_ELEMENT_NAME.getNamespaceURI(),
-                  IMPLEMENTS_ELEMENT_NAME.getLocalPart());
-            if (customization != null) {
-               String classToBeImplemented = customization.element.getTextContent();
-               if (classToBeImplemented == null) {
-                  throw new SAXException("Tag implements must not be text content empty, a class must be provided!");
-               }
-               classToBeImplemented = classToBeImplemented.trim();
-               customization.markAsAcknowledged();
-               JClass classToBeExtendedRef = model.ref(classToBeImplemented);
-               classOutline.ref._implements(classToBeExtendedRef);
-               logger.debug("(XJCInheritancePlugin) - {} implements {}", classOutline.ref.name(),
-                     classToBeExtendedRef.name());
-            }
+         CPluginCustomization customization = classOutline.target.getCustomizations()
+               .find(IMPLEMENTS_ELEMENT_NAME.getNamespaceURI(), IMPLEMENTS_ELEMENT_NAME.getLocalPart());
+         if (customization == null) {
+            continue;
          }
+         String className = customization.element.getTextContent();
+         if (className == null) {
+            throw new SAXException("<inheritance:implements> must have a non-empty class name.");
+         }
+         className = className.trim();
+         customization.markAsAcknowledged();
+         JClass interfaceRef = model.ref(className);
+         classOutline.ref._implements(interfaceRef);
+         logger.debug("(XJCInheritancePlugin) {} implements {}", classOutline.ref.name(), interfaceRef.name());
       }
       return true;
    }
