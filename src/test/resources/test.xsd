@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://test.gs1.ro"
+           xmlns:tns="http://test.gs1.ro"
+           elementFormDefault="qualified">
+
+    <!-- Type with fields: used to test toString/hashCode/equals/inheritance generation -->
+    <xs:complexType name="PersonType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="age" type="xs:int"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Type with no fields: toString and hashCode plugins should skip it -->
+    <xs:complexType name="EmptyType"/>
+
+    <!-- Type with a list field: used to test simplify replaceGenericList -->
+    <xs:complexType name="ContainerType">
+        <xs:sequence>
+            <xs:element name="item" type="xs:string" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>
