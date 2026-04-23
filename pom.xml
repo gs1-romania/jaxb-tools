@@ -5,7 +5,7 @@
 
    <groupId>ro.gs1</groupId>
    <artifactId>jaxb-tools</artifactId>
-   <version>0.2-SNAPSHOT</version>
+   <version>0.3-SNAPSHOT</version>
 
    <name>jaxb-tools</name>
    <description>JAXB XJC plugins that generate toString, equals, hashCode, inheritance and simplify methods for JAXB-generated classes.</description>
