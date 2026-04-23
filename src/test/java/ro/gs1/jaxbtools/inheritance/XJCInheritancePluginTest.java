@@ -1,10 +1,10 @@
 package ro.gs1.jaxbtools.inheritance;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import ro.gs1.jaxbtools.XjcPluginTestBase;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class XJCInheritancePluginTest extends XjcPluginTestBase {
 
@@ -12,15 +12,14 @@ public class XJCInheritancePluginTest extends XjcPluginTestBase {
    public void addsImplementsFromBindings() throws Exception {
       runXjc("-Xgs1-inheritance", "-extension", "-b", bindingsPath("/inheritance-bindings.xjb"));
       String source = readGeneratedClass("PersonType");
-      assertTrue("PersonType should implement Serializable", source.contains("Serializable"));
-      assertTrue("PersonType class declaration should have implements", source.contains("implements"));
+      assertTrue(source.contains("Serializable"), "PersonType should implement Serializable");
+      assertTrue(source.contains("implements"), "PersonType class declaration should have implements");
    }
 
    @Test
    public void doesNotModifyClassWithNoBindings() throws Exception {
       runXjc("-Xgs1-inheritance", "-extension", "-b", bindingsPath("/inheritance-bindings.xjb"));
-      // EmptyType has no inheritance customization in the bindings file
       String source = readGeneratedClass("EmptyType");
-      assertFalse("EmptyType should not implement Serializable", source.contains("Serializable"));
+      assertFalse(source.contains("Serializable"), "EmptyType should not implement Serializable");
    }
 }

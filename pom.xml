@@ -39,12 +39,12 @@
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
       <maven.compiler.source>17</maven.compiler.source>
       <maven.compiler.target>17</maven.compiler.target>
-      <version.junit>4.13.2</version.junit>
+      <version.junit>5.12.2</version.junit>
       <version.jaxb.xjc>4.0.7</version.jaxb.xjc>
       <version.slf4j>2.0.17</version.slf4j>
       <version.commons.lang3>3.20.0</version.commons.lang3>
       <version.commons.collections>4.5.0</version.commons.collections>
-      <version.jaxb.api>4.0.2</version.jaxb.api>
+      <version.jaxb.api>4.0.5</version.jaxb.api>
    </properties>
 
    <dependencies>
@@ -87,8 +87,8 @@
          <scope>test</scope>
       </dependency>
       <dependency>
-         <groupId>junit</groupId>
-         <artifactId>junit</artifactId>
+         <groupId>org.junit.jupiter</groupId>
+         <artifactId>junit-jupiter</artifactId>
          <version>${version.junit}</version>
          <scope>test</scope>
       </dependency>

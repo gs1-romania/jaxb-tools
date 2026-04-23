@@ -1,10 +1,10 @@
 package ro.gs1.jaxbtools.hashcode;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import ro.gs1.jaxbtools.XjcPluginTestBase;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class XJCHashCodePluginTest extends XjcPluginTestBase {
 
@@ -12,14 +12,14 @@ public class XJCHashCodePluginTest extends XjcPluginTestBase {
    public void generatesHashCodeForClassWithFields() throws Exception {
       runXjc("-Xgs1-hashcode");
       String source = readGeneratedClass("PersonType");
-      assertTrue("PersonType should have a hashCode() method", source.contains("public int hashCode()"));
-      assertTrue("hashCode() should use HashCodeBuilder", source.contains("HashCodeBuilder"));
+      assertTrue(source.contains("public int hashCode()"), "PersonType should have a hashCode() method");
+      assertTrue(source.contains("HashCodeBuilder"), "hashCode() should use HashCodeBuilder");
    }
 
    @Test
    public void skipsHashCodeForClassWithNoFields() throws Exception {
       runXjc("-Xgs1-hashcode");
       String source = readGeneratedClass("EmptyType");
-      assertFalse("EmptyType should not have a hashCode() method", source.contains("public int hashCode()"));
+      assertFalse(source.contains("public int hashCode()"), "EmptyType should not have a hashCode() method");
    }
 }

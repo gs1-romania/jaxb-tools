@@ -1,9 +1,9 @@
 package ro.gs1.jaxbtools.equals;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import ro.gs1.jaxbtools.XjcPluginTestBase;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class XJCEqualsPluginTest extends XjcPluginTestBase {
 
@@ -11,15 +11,14 @@ public class XJCEqualsPluginTest extends XjcPluginTestBase {
    public void generatesEqualsForClassWithFields() throws Exception {
       runXjc("-Xgs1-equals");
       String source = readGeneratedClass("PersonType");
-      assertTrue("PersonType should have an equals() method", source.contains("public boolean equals(Object"));
-      assertTrue("equals() should use EqualsBuilder", source.contains("EqualsBuilder"));
+      assertTrue(source.contains("public boolean equals(Object"), "PersonType should have an equals() method");
+      assertTrue(source.contains("EqualsBuilder"), "equals() should use EqualsBuilder");
    }
 
    @Test
    public void generatesEqualsForClassWithNoFields() throws Exception {
       runXjc("-Xgs1-equals");
-      // equals is always generated, even for empty classes (returns true)
       String source = readGeneratedClass("EmptyType");
-      assertTrue("EmptyType should still have an equals() method", source.contains("public boolean equals(Object"));
+      assertTrue(source.contains("public boolean equals(Object"), "EmptyType should still have an equals() method");
    }
 }
