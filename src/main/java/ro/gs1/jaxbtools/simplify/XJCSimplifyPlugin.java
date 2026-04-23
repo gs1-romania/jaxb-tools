@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import jakarta.xml.bind.annotation.XmlAnyElement;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlElementRef;
 import jakarta.xml.bind.annotation.XmlType;
@@ -118,6 +119,11 @@ public class XJCSimplifyPlugin extends AbstractPlugin {
       String replacementClassName = customization.element.getTextContent();
       JClass replacementType = model.ref(replacementClassName);
       field.type(model.ref(ArrayList.class).narrow(replacementType));
+      JClass xmlAnyElementType = model.ref(XmlAnyElement.class);
+      field.annotations().stream()
+            .filter(a -> a.getAnnotationClass().compareTo(xmlAnyElementType) == 0)
+            .findFirst()
+            .ifPresent(ann -> ann.param("lax", true));
       generateGetter(classOutline, field);
       customization.markAsAcknowledged();
       logger.debug("(XJCSimplifyPlugin) Replaced generic type of field '{}' with ArrayList<{}>.",
