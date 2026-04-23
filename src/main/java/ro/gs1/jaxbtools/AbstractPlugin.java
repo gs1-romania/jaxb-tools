@@ -23,12 +23,12 @@ public abstract class AbstractPlugin extends Plugin {
 
    protected boolean removeGetterIfExists(ClassOutline classOutline, JFieldVar field) {
       return classOutline.implClass.methods()
-            .removeIf(m -> ("get" + field.name()).equalsIgnoreCase(((JMethod) m).name()));
+            .removeIf(m -> ("get" + field.name()).equalsIgnoreCase(m.name()));
    }
 
    protected boolean removeSetterIfExists(ClassOutline classOutline, JFieldVar field) {
       return classOutline.implClass.methods()
-            .removeIf(m -> ("set" + field.name()).equalsIgnoreCase(((JMethod) m).name()));
+            .removeIf(m -> ("set" + field.name()).equalsIgnoreCase(m.name()));
    }
 
    protected void generateGetter(ClassOutline classOutline, JFieldVar field) {

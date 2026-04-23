@@ -3,6 +3,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/ro.gs1/jaxb-tools)](https://central.sonatype.com/artifact/ro.gs1/jaxb-tools)
 [![Maven Build](https://github.com/gs1-romania/jaxb-tools/actions/workflows/build.yml/badge.svg)](https://github.com/gs1-romania/jaxb-tools/actions/workflows/build.yml)
 [![Release](https://github.com/gs1-romania/jaxb-tools/actions/workflows/release.yml/badge.svg)](https://github.com/gs1-romania/jaxb-tools/actions/workflows/release.yml)
+[![Java 17](https://img.shields.io/badge/Java-17-blue?logo=openjdk)](https://adoptium.net/)
 
 XJC plugins for [Jakarta XML Binding](https://jakarta.ee/specifications/xml-binding/) that generate `toString`, `equals`, `hashCode`, inheritance declarations, and list simplifications for JAXB-generated classes.
 

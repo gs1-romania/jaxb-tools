@@ -37,8 +37,8 @@
    </developers>
    <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-      <maven.compiler.source>11</maven.compiler.source>
-      <maven.compiler.target>11</maven.compiler.target>
+      <maven.compiler.source>17</maven.compiler.source>
+      <maven.compiler.target>17</maven.compiler.target>
       <version.junit>4.13.2</version.junit>
       <version.jaxb.xjc>4.0.7</version.jaxb.xjc>
       <version.slf4j>2.0.17</version.slf4j>
